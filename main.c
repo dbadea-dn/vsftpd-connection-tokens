@@ -22,6 +22,10 @@
 #include "tcpwrap.h"
 #include "vsftpver.h"
 #include "ssl.h"
+#ifdef VSF_BUILD_SHARED_STATE
+#include "sharedstate.h"
+#include <stdio.h>
+#endif
 
 /*
  * Forward decls of helper functions
@@ -66,7 +70,11 @@ main(int argc, const char* argv[])
     /* Secure connection state */
     0, 0, 0, 0, 0, INIT_MYSTR, 0, -1, -1,
     /* Login fails */
-    0
+    0,
+#ifdef VSF_BUILD_SHARED_STATE
+    /* Shared state info */
+    {(void*)0, 0 , 0},
+#endif
   };
   int config_loaded = 0;
   int i;
@@ -120,6 +128,13 @@ main(int argc, const char* argv[])
     }
     vsf_sysutil_free(p_statbuf);
   }
+#ifdef VSF_BUILD_SHARED_STATE
+  shared_state_setup(&the_session, argv[0]);
+  shared_state_lock(&the_session);
+  the_session.shared.state->counter += 1;
+  printf("Shared state: counter=%d\n", the_session.shared.state->counter);
+  shared_state_unlock(&the_session);
+#endif
   /* Resolve pasv_address if required */
   if (tunable_pasv_address && tunable_pasv_addr_resolve)
   {
@@ -155,10 +170,12 @@ main(int argc, const char* argv[])
     the_session.num_clients = ret.num_children;
     the_session.num_this_ip = ret.num_this_ip;
   }
+#ifdef VSF_BUILD_TCPWRAPPERS
   if (tunable_tcp_wrappers)
   {
     the_session.tcp_wrapper_ok = vsf_tcp_wrapper_ok(VSFTP_COMMAND_FD);
   }
+#endif
   {
     const char* p_load_conf = vsf_sysutil_getenv("VSFTPD_LOAD_CONF");
     if (p_load_conf)

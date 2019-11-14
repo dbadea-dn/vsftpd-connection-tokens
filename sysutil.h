@@ -7,6 +7,11 @@
 #include "filesize.h"
 #endif
 
+#ifdef VSF_BUILD_SHARED_STATE
+#include <sys/ipc.h>
+#include <sys/shm.h>
+#endif
+
 /* Return value queries */
 int vsf_sysutil_retval_is_error(int retval);
 enum EVSFSysUtilError
@@ -347,6 +352,14 @@ int vsf_sysutil_setmodtime(const char* p_file, long the_time, int is_localtime);
 void vsf_sysutil_set_address_space_limit(unsigned long bytes);
 void vsf_sysutil_set_no_fds(void);
 void vsf_sysutil_set_no_procs(void);
+
+#ifdef VSF_BUILD_SHARED_STATE
+/* Shared server state */
+int vsf_sysutil_sem_init(const char* path);
+void vsf_sysutil_sem_take(int sem_id);
+void vsf_sysutil_sem_release(int sem_id);
+int vsf_sysutil_shm_init(const char* path, size_t size, void **addr);
+#endif
 
 #endif /* VSF_SYSUTIL_H */
 

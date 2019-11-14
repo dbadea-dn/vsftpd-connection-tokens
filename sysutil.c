@@ -16,6 +16,7 @@
 #include "utility.h"
 #include "tunables.h"
 #include "sysdeputil.h"
+#include "builddefs.h"
 
 /* Activate 64-bit file support on Linux/32bit plus others */
 #define _FILE_OFFSET_BITS 64
@@ -55,6 +56,13 @@
 #include <utime.h>
 #include <netdb.h>
 #include <sys/resource.h>
+
+#ifdef VSF_BUILD_SHARED_STATE
+#include <sys/types.h>
+#include <sys/ipc.h>
+#include <sys/sem.h>
+#include <sys/shm.h>
+#endif
 
 /* Private variables to this file */
 /* Current umask() */
@@ -2859,3 +2867,125 @@ vsf_sysutil_post_fork()
     s_sig_details[i].pending = 0;
   }
 }
+
+#ifdef VSF_BUILD_SHARED_STATE
+
+#define SEM_KEY 1
+#define SHM_KEY 2
+#define OBJ_PERMS (S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP)
+
+union semun {
+  int val;
+  struct semid_ds *buf;
+  ushort *array;
+};
+
+int
+vsf_sysutil_sem_init(const char *path)
+{
+  key_t key;
+  int sem_id;
+
+  key = ftok(path, SEM_KEY);
+  if (key == -1) {
+    die("ftok");
+  }
+
+  sem_id = semget(key, 1, IPC_CREAT | IPC_EXCL | OBJ_PERMS);
+  if (sem_id  == -1) {
+    if (errno == EEXIST) {
+      /* Use already existing semaphore */
+      sem_id = semget(key, 1, OBJ_PERMS);
+      if (sem_id  == -1) {
+        die("sem_init failed 2nd semget");
+      }
+    } else {
+      die("sem_init failed semget");
+    }
+  } else {
+    /* Initialize semaphore */
+    union semun arg;
+    int retval;
+
+    arg.val = 1;
+    retval = semctl(sem_id, 0, SETVAL, arg);
+    if (retval == -1) {
+      die("sem_init failed setval");
+    }
+  }
+  return sem_id;
+}
+
+void
+vsf_sysutil_sem_take(int sem_id)
+{
+  struct sembuf ops;
+  int retval;
+
+  while (1) {
+    ops.sem_num = 0;
+    ops.sem_op = -1;
+    ops.sem_flg = SEM_UNDO;
+
+    retval = semop(sem_id, &ops, 1);
+    if (retval == -1) {
+      if (errno == EINTR) {
+        continue;
+      }
+      die("semop take");
+    }
+    break;
+  }
+}
+
+void
+vsf_sysutil_sem_release(int sem_id)
+{
+  struct sembuf ops;
+  int retval;
+
+  while (1) {
+    ops.sem_num = 0;
+    ops.sem_op = 1;
+    ops.sem_flg = 0;
+
+    retval = semop(sem_id, &ops, 1);
+    if (retval == -1) {
+      if (errno == EINTR) {
+        continue;
+      }
+      die("semop release");
+    }
+    break;
+  }
+}
+
+int
+vsf_sysutil_shm_init(const char *path, size_t size, void **addr)
+{
+  key_t key;
+  int shm_id;
+  void *retval;
+
+  /* Setup shared memory descriptor */
+  key = ftok(path, SHM_KEY);
+  if (key == -1) {
+    die("shm_init failed ftok");
+  }
+
+  shm_id = shmget(key, size, IPC_CREAT | OBJ_PERMS);
+  if (shm_id == -1) {
+    die("shm_init failed shmget");
+  }
+
+  /* Attach memory */
+  retval = shmat(shm_id, NULL, 0);
+  if (retval == (void *)-1) {
+    die("shm_init failed shmat");
+  }
+
+  *addr = retval;
+  return shm_id;
+}
+
+#endif

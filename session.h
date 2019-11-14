@@ -12,6 +12,16 @@
 struct vsf_sysutil_sockaddr;
 struct mystr_list;
 
+#include "builddefs.h"
+
+#ifdef VSF_BUILD_SHARED_STATE
+/* Shared state */
+struct vsf_shared_state {
+  int counter;
+};
+#endif
+
+
 /* This struct contains variables specific to the state of the current FTP
  * session
  */
@@ -99,6 +109,15 @@ struct vsf_session
   int ssl_slave_fd;
   int ssl_consumer_fd;
   unsigned int login_fails;
+
+#ifdef VSF_BUILD_SHARED_STATE
+  /* Shared state info */
+  struct {
+    struct vsf_shared_state *state;
+    int sem_id;
+    int shm_id;
+  } shared;
+#endif
 };
 
 #endif /* VSF_SESSION_H */

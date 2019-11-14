@@ -4,6 +4,7 @@
 #define VSF_BUILD_TCPWRAPPERS
 #define VSF_BUILD_PAM
 #undef VSF_BUILD_SSL
+#define VSF_BUILD_SHARED_STATE
 
 #endif /* VSF_BUILDDEFS_H */
 
