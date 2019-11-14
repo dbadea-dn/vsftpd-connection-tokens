@@ -107,6 +107,7 @@ parseconf_bool_array[] =
   { "http_enable", &tunable_http_enable },
   { "seccomp_sandbox", &tunable_seccomp_sandbox },
   { "allow_writeable_chroot", &tunable_allow_writeable_chroot },
+  { "request_token", &tunable_request_token },
   { 0, 0 }
 };
 
@@ -179,6 +180,7 @@ parseconf_str_array[] =
   { "dsa_private_key_file", &tunable_dsa_private_key_file },
   { "ca_certs_file", &tunable_ca_certs_file },
   { "cmds_denied", &tunable_cmds_denied },
+  { "request_token_file", &tunable_request_token_file },
   { 0, 0 }
 };
 

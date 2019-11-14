@@ -88,6 +88,7 @@ int tunable_ftp_enable;
 int tunable_http_enable;
 int tunable_seccomp_sandbox;
 int tunable_allow_writeable_chroot;
+int tunable_request_token;
 
 unsigned int tunable_accept_timeout;
 unsigned int tunable_connect_timeout;
@@ -142,6 +143,7 @@ const char* tunable_ssl_ciphers;
 const char* tunable_rsa_private_key_file;
 const char* tunable_dsa_private_key_file;
 const char* tunable_ca_certs_file;
+const char* tunable_request_token_file;
 
 static void install_str_setting(const char* p_value, const char** p_storage);
 
@@ -253,6 +255,7 @@ tunables_load_defaults()
   tunable_max_login_fails = 3;
   /* -rw------- */
   tunable_chown_upload_mode = 0600;
+  tunable_request_token = 0;
 
   install_str_setting("/usr/share/empty", &tunable_secure_chroot_dir);
   install_str_setting("ftp", &tunable_ftp_username);
@@ -288,6 +291,7 @@ tunables_load_defaults()
   install_str_setting(0, &tunable_rsa_private_key_file);
   install_str_setting(0, &tunable_dsa_private_key_file);
   install_str_setting(0, &tunable_ca_certs_file);
+  install_str_setting("/var/run/vsftpd.token", &tunable_request_token_file);
 }
 
 void

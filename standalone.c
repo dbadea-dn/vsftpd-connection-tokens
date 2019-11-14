@@ -148,6 +148,19 @@ vsf_standalone_main(void)
     {
       continue;
     }
+    if (tunable_request_token)
+    {
+      int sem_id;
+
+      sem_id = vsf_sysutil_sem_open(tunable_request_token_file);
+      retval = vsf_sysutil_sem_take_nb(sem_id);
+      if (retval == -1)
+      {
+        vsf_sysutil_close(new_client_sock);
+        continue;
+      }
+    }
+
     ++s_children;
     child_info.num_children = s_children;
     child_info.num_this_ip = 0;
