@@ -7,6 +7,7 @@
  * Code to parse the FTP protocol prior to a successful login.
  */
 
+#include "builddefs.h"
 #include "prelogin.h"
 #include "ftpcmdio.h"
 #include "ftpcodes.h"
@@ -66,9 +67,22 @@ static void
 check_limits(struct vsf_session* p_sess)
 {
   struct mystr str_log_line = INIT_MYSTR;
+  int bounce = 0;
   /* Check for client limits (standalone mode only) */
-  if (tunable_max_clients > 0 &&
-      p_sess->num_clients > tunable_max_clients)
+  if (tunable_max_clients > 0) {
+#ifdef VSF_BUILD_COUNT_ALL_CLIENTS
+    int retval;
+
+    retval = vsf_sysutil_sem_take_nb(p_sess->sem_clients);
+    if (retval == -1) {
+      bounce = 1;
+    }
+#endif
+    if (p_sess->num_clients > tunable_max_clients) {
+      bounce = 1;
+    }
+  }
+  if (bounce != 0)
   {
     str_alloc_text(&str_log_line, "Connection refused: too many sessions.");
     vsf_log_line(p_sess, kVSFLogEntryConnection, &str_log_line);

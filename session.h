@@ -9,6 +9,8 @@
 #include "filesize.h"
 #endif
 
+#include "builddefs.h"
+
 struct vsf_sysutil_sockaddr;
 struct mystr_list;
 
@@ -99,6 +101,11 @@ struct vsf_session
   int ssl_slave_fd;
   int ssl_consumer_fd;
   unsigned int login_fails;
+#ifdef VSF_BUILD_COUNT_ALL_CLIENTS
+  /* Global number of connections */
+  const char* proc_file;
+  int sem_clients;
+#endif
 };
 
 #endif /* VSF_SESSION_H */

@@ -2,6 +2,7 @@
 #define VSF_SYSUTIL_H
 
 /* TODO: these functions need proper documenting! */
+#include "builddefs.h"
 
 #ifndef VSF_FILESIZE_H
 #include "filesize.h"
@@ -347,6 +348,13 @@ int vsf_sysutil_setmodtime(const char* p_file, long the_time, int is_localtime);
 void vsf_sysutil_set_address_space_limit(unsigned long bytes);
 void vsf_sysutil_set_no_fds(void);
 void vsf_sysutil_set_no_procs(void);
+
+#ifdef VSF_BUILD_COUNT_ALL_CLIENTS
+/* Global number of connections */
+int vsf_sysutil_sem_init(const char* path, int value);
+int vsf_sysutil_sem_take_nb(int sem_id);
+#endif
+
 
 #endif /* VSF_SYSUTIL_H */
 

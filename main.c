@@ -5,6 +5,7 @@
  * main.c
  */
 
+#include "builddefs.h"
 #include "session.h"
 #include "utility.h"
 #include "tunables.h"
@@ -22,6 +23,11 @@
 #include "tcpwrap.h"
 #include "vsftpver.h"
 #include "ssl.h"
+
+#ifdef VSF_BUILD_COUNT_ALL_CLIENTS
+#include <stdlib.h>
+#include <string.h>
+#endif
 
 /*
  * Forward decls of helper functions
@@ -66,7 +72,11 @@ main(int argc, const char* argv[])
     /* Secure connection state */
     0, 0, 0, 0, 0, INIT_MYSTR, 0, -1, -1,
     /* Login fails */
-    0
+    0,
+#ifdef VSF_BUILD_COUNT_ALL_CLIENTS
+    NULL,
+    -1,
+#endif
   };
   int config_loaded = 0;
   int i;
@@ -86,6 +96,9 @@ main(int argc, const char* argv[])
   {
     die("vsftpd: missing argv[0]");
   }
+#ifdef VSF_BUILD_COUNT_ALL_CLIENTS
+  the_session.proc_file = (const char*)realpath(argv[0], NULL);
+#endif
   for (i = 1; i < argc; ++i)
   {
     const char* p_arg = argv[i];
@@ -377,5 +390,11 @@ session_init(struct vsf_session* p_sess)
     }
     p_sess->anon_upload_chown_uid = vsf_sysutil_user_getuid(p_user);
   }
+#ifdef VSF_BUILD_COUNT_ALL_CLIENTS
+  if (tunable_max_clients > 0) {
+    p_sess->sem_clients = vsf_sysutil_sem_init(p_sess->proc_file,
+                                               tunable_max_clients);
+  }
+#endif
 }
 
