@@ -99,6 +99,9 @@ struct vsf_session
   int ssl_slave_fd;
   int ssl_consumer_fd;
   unsigned int login_fails;
+
+  /* Request token */
+  int token_key;
 };
 
 #endif /* VSF_SESSION_H */

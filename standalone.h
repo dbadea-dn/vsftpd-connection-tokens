@@ -1,6 +1,8 @@
 #ifndef VSF_STANDALONE_H
 #define VSF_STANDALONE_H
 
+#include "session.h"
+
 struct vsf_client_launch
 {
   unsigned int num_children;
@@ -17,7 +19,7 @@ struct vsf_client_launch
  * Returns a structure representing the current number of clients, and
  * instances for this IP addresss.
  */
-struct vsf_client_launch vsf_standalone_main(void);
+struct vsf_client_launch vsf_standalone_main(struct vsf_session* p_session);
 
 #endif /* VSF_STANDALONE_H */
 

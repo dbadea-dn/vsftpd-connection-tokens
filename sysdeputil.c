@@ -1267,10 +1267,15 @@ vsf_sysutil_fork_isolate_all_failok()
 {
 #ifdef VSF_SYSDEP_HAVE_LINUX_CLONE
   static int cloneflags_work = 1;
+  static int newipc_option = CLONE_NEWIPC;
+
+  if (tunable_request_token) {
+    newipc_option = 0;
+  }
   if (cloneflags_work)
   {
     int ret = syscall(__NR_clone,
-                      CLONE_NEWPID | CLONE_NEWIPC | CLONE_NEWNET | SIGCHLD,
+                      CLONE_NEWPID | newipc_option | CLONE_NEWNET | SIGCHLD,
                       NULL);
     if (ret != -1 || (errno != EINVAL && errno != EPERM))
     {
@@ -1291,9 +1296,14 @@ vsf_sysutil_fork_isolate_failok()
 {
 #ifdef VSF_SYSDEP_HAVE_LINUX_CLONE
   static int cloneflags_work = 1;
+  static int newipc_option = CLONE_NEWIPC;
+
+  if (tunable_request_token) {
+    newipc_option = 0;
+  }
   if (cloneflags_work)
   {
-    int ret = syscall(__NR_clone, CLONE_NEWPID | CLONE_NEWIPC | SIGCHLD, NULL);
+    int ret = syscall(__NR_clone, CLONE_NEWPID | newipc_option | SIGCHLD, NULL);
     if (ret != -1 || (errno != EINVAL && errno != EPERM))
     {
       if (ret == 0)

@@ -55,6 +55,8 @@
 #include <utime.h>
 #include <netdb.h>
 #include <sys/resource.h>
+#include <sys/ipc.h>
+#include <sys/sem.h>
 
 /* Private variables to this file */
 /* Current umask() */
@@ -2857,5 +2859,86 @@ vsf_sysutil_post_fork()
   for (i=0; i < NSIG; ++i)
   {
     s_sig_details[i].pending = 0;
+  }
+}
+
+int vsf_sysutil_ftok(const char* path, int proj_id)
+{
+  key_t key;
+
+  key = ftok(path, proj_id);
+  if (key == -1) {
+    die("ftok");
+  }
+  return key;
+}
+
+#define SEM_CLIENTS_INIT_WAIT_MS 200
+#define SEM_CLIENTS_INIT_RETRIES 5
+
+union semun {
+  int val;
+  struct semid_ds *buf;
+  unsigned short *array;
+};
+
+int
+vsf_sysutil_sem_open(int key)
+{
+  int sem_id;
+  union semun arg;
+  int retval;
+
+  sem_id = semget(key, 1, 0);
+  if (sem_id  == -1) {
+    die("sem_init failed semget");
+  }
+  /* Wait for initialization */
+  {
+    struct semid_ds ds;
+    int credit;
+
+    credit = 1+ SEM_CLIENTS_INIT_RETRIES;
+    while (1) {
+      arg.buf = &ds;
+      retval = semctl(sem_id, 0, IPC_STAT, arg);
+      if (retval == -1) {
+        die("sem_init wait for init failed stat");
+      }
+      if (ds.sem_otime != 0) {
+        break;
+      }
+      --credit;
+      if (credit == 0) {
+        die("sem_init waited too long for init");
+      }
+      usleep(SEM_CLIENTS_INIT_WAIT_MS * 1000);
+    }
+  }
+  return sem_id;
+}
+
+int
+vsf_sysutil_sem_take_nb(int sem_id)
+{
+  struct sembuf ops;
+  int retval;
+
+  while (1) {
+    ops.sem_num = 0;
+    ops.sem_op = -1;
+    ops.sem_flg = SEM_UNDO | IPC_NOWAIT;
+
+    retval = semop(sem_id, &ops, 1);
+    if (retval == -1) {
+      if (errno == EINTR) {
+        continue;
+      }
+      if (errno == EAGAIN) {
+        return -1;
+      }
+      die("semop take");
+    }
+    return 0;
   }
 }

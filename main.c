@@ -22,6 +22,7 @@
 #include "tcpwrap.h"
 #include "vsftpver.h"
 #include "ssl.h"
+#include "ftpcodes.h"
 
 /*
  * Forward decls of helper functions
@@ -31,6 +32,7 @@ static void do_sanity_checks(void);
 static void session_init(struct vsf_session* p_sess);
 static void env_init(void);
 static void limits_init(void);
+static void request_token(struct vsf_session* p_sess);
 
 int
 main(int argc, const char* argv[])
@@ -66,7 +68,9 @@ main(int argc, const char* argv[])
     /* Secure connection state */
     0, 0, 0, 0, 0, INIT_MYSTR, 0, -1, -1,
     /* Login fails */
-    0
+    0,
+    /* Request token */
+    -1
   };
   int config_loaded = 0;
   int i;
@@ -151,7 +155,7 @@ main(int argc, const char* argv[])
   if (tunable_listen || tunable_listen_ipv6)
   {
     /* Standalone mode */
-    struct vsf_client_launch ret = vsf_standalone_main();
+    struct vsf_client_launch ret = vsf_standalone_main(&the_session);
     the_session.num_clients = ret.num_children;
     the_session.num_this_ip = ret.num_this_ip;
   }
@@ -189,6 +193,8 @@ main(int argc, const char* argv[])
     vsf_sysutil_set_proctitle_prefix(&the_session.remote_ip_str);
     vsf_sysutil_setproctitle("connected");
   }
+  /* Request token */
+  request_token(&the_session);
   /* We might chroot() very soon (one process model), so we need to open
    * any required config files here.
    */
@@ -326,6 +332,29 @@ limits_init(void)
     limit *= 3;
   }
   vsf_sysutil_set_address_space_limit(limit);
+}
+
+static void
+request_token(struct vsf_session* p_sess)
+{
+  int sem_id;
+  int retval;
+  struct mystr str_log_line = INIT_MYSTR;
+
+  if (!tunable_request_token)
+  {
+    return;
+  }
+
+  sem_id = vsf_sysutil_sem_open(p_sess->token_key);
+  retval = vsf_sysutil_sem_take_nb(sem_id);
+  if (retval == -1)
+  {
+    str_alloc_text(&str_log_line, "Connection refused: too many sessions.");
+    vsf_log_line(p_sess, kVSFLogEntryConnection, &str_log_line);
+    vsf_cmdio_write_exit(p_sess, FTP_TOO_MANY_USERS,
+                         "There are too many connected users, please try later.", 1);
+  }
 }
 
 static void

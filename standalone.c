@@ -34,7 +34,7 @@ static unsigned int hash_ip(unsigned int buckets, void* p_key);
 static unsigned int hash_pid(unsigned int buckets, void* p_key);
 
 struct vsf_client_launch
-vsf_standalone_main(void)
+vsf_standalone_main(struct vsf_session* p_sess)
 {
   struct vsf_sysutil_sockaddr* p_accept_addr = 0;
   int listen_sock = -1;
@@ -136,6 +136,10 @@ vsf_standalone_main(void)
     die("could not listen");
   }
   vsf_sysutil_sockaddr_alloc(&p_accept_addr);
+
+  /* Prepare request token */
+  p_sess->token_key = vsf_sysutil_ftok(tunable_request_token_file, 0);
+
   while (1)
   {
     struct vsf_client_launch child_info;
@@ -148,6 +152,7 @@ vsf_standalone_main(void)
     {
       continue;
     }
+
     ++s_children;
     child_info.num_children = s_children;
     child_info.num_this_ip = 0;

@@ -348,5 +348,10 @@ void vsf_sysutil_set_address_space_limit(unsigned long bytes);
 void vsf_sysutil_set_no_fds(void);
 void vsf_sysutil_set_no_procs(void);
 
+/* Global number of connections */
+int vsf_sysutil_ftok(const char* path, int proj_id);
+int vsf_sysutil_sem_open(int key);
+int vsf_sysutil_sem_take_nb(int sem_id);
+
 #endif /* VSF_SYSUTIL_H */
 
